@@ -1,0 +1,85 @@
+@model IEnumerable<Issue>
+@{
+    ViewData["Title"] = "Available work";
+    var bugs = ViewBag.Bugs as List<IssueFlow.Models.Bug> ?? new();
+}
+<div class="d-flex justify-content-between mb-3">
+    <h5>Open features / issues — request work</h5>
+    <div class="d-flex gap-2">
+        @if (User.IsInRole("QATester"))
+        {
+            <a class="btn btn-outline-secondary btn-sm" asp-action="Available" asp-route-kind="Review">QA: Review queue</a>
+        }
+        <a class="btn btn-outline-primary btn-sm" asp-action="MyRequests">My requests</a>
+    </div>
+</div>
+<form method="get" class="row g-2 mb-3">
+    <input type="hidden" name="kind" value="Work" />
+    <div class="col-md-6"><input name="search" value="@ViewBag.Search" class="form-control" placeholder="Search…" /></div>
+    <div class="col-md-3">
+        <select name="priority" class="form-select" onchange="this.form.submit()">
+            <option value="">All priorities</option>
+            @foreach (var p in new[]{"Critical","High","Medium","Low"})
+            {
+                <option value="@p" selected="@(ViewBag.Priority as string == p)">@p</option>
+            }
+        </select>
+    </div>
+    <div class="col-md-2"><button class="btn btn-primary w-100">Filter</button></div>
+</form>
+<div class="card border-0 shadow-sm mb-4">
+    <table class="table table-hover mb-0">
+        <thead class="table-light"><tr><th>Issue</th><th>Project</th><th>Priority</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+        @foreach (var i in Model)
+        {
+            <tr>
+                <td><a asp-controller="Issue" asp-action="Details" asp-route-id="@i.Id">@i.Title</a></td>
+                <td>@i.Project?.Name</td>
+                <td>@i.Priority</td>
+                <td>@i.Status</td>
+                <td>
+                    @if (User.IsInRole("Developer"))
+                    {
+                        <form asp-action="RequestWork" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="targetType" value="Issue" />
+                            <input type="hidden" name="targetId" value="@i.Id" />
+                            <input type="hidden" name="requestKind" value="Work" />
+                            <button class="btn btn-sm btn-primary">Request</button>
+                        </form>
+                    }
+                </td>
+            </tr>
+        }
+        @if (!Model.Any()) { <tr><td colspan="5" class="text-center text-muted py-3">No open issues</td></tr> }
+        </tbody>
+    </table>
+</div>
+@if (bugs.Any() && User.IsInRole("Developer"))
+{
+    <h6>Open bugs to fix</h6>
+    <div class="card border-0 shadow-sm">
+        <table class="table mb-0">
+            <thead class="table-light"><tr><th>Bug</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+            @foreach (var b in bugs)
+            {
+                <tr>
+                    <td><a asp-controller="Bug" asp-action="Details" asp-route-id="@b.Id">@b.Title</a></td>
+                    <td>@b.Status</td>
+                    <td>
+                        <form asp-action="RequestWork" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="targetType" value="Bug" />
+                            <input type="hidden" name="targetId" value="@b.Id" />
+                            <input type="hidden" name="requestKind" value="Work" />
+                            <button class="btn btn-sm btn-primary">Request</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+}

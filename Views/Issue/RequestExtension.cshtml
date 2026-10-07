@@ -1,0 +1,37 @@
+@model IssueFlow.Models.ViewModels.RequestExtensionViewModel
+@{
+    ViewData["Title"] = "Request Deadline Extension";
+}
+
+<h2 class="mb-3">Request Deadline Extension</h2>
+<p class="text-muted">Issue: <strong>@Model.IssueTitle</strong></p>
+@if (Model.CurrentDeadline.HasValue)
+{
+    <p>Current deadline: @await Html.PartialAsync("_DeadlineBadge", Model.CurrentDeadline)</p>
+}
+
+<div class="card border-0 shadow-sm" style="max-width:520px">
+    <div class="card-body">
+        <form asp-action="RequestExtension" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="IssueId" />
+            <input type="hidden" asp-for="IssueTitle" />
+            <input type="hidden" asp-for="CurrentDeadline" />
+
+            <div class="mb-3">
+                <label asp-for="RequestedNewDeadline" class="form-label"></label>
+                <input asp-for="RequestedNewDeadline" class="form-control" type="date" />
+                <span asp-validation-for="RequestedNewDeadline" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Reason" class="form-label"></label>
+                <textarea asp-for="Reason" class="form-control" rows="3"></textarea>
+                <span asp-validation-for="Reason" class="text-danger"></span>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Submit Request</button>
+            <a asp-action="Details" asp-route-id="@Model.IssueId" class="btn btn-outline-secondary">Cancel</a>
+        </form>
+    </div>
+</div>

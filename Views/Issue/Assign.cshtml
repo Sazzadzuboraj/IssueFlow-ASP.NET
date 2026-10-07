@@ -1,0 +1,22 @@
+@model AssignIssueViewModel
+@{
+    ViewData["Title"] = "Assign Developer";
+}
+
+<div class="card p-4" style="max-width:500px">
+    <h5 class="mb-3">Assign Developer</h5>
+    <p>Issue: <strong>@Model.IssueTitle</strong></p>
+    <form asp-action="Assign" method="post">
+        <input type="hidden" asp-for="IssueId" />
+        <input type="hidden" asp-for="IssueTitle" />
+        <div class="mb-3">
+            <label class="form-label">Select Developer</label>
+            <select asp-for="UserId" class="form-select" asp-items="Model.Developers">
+                <option value="">-- Select --</option>
+            </select>
+            <span asp-validation-for="UserId" class="text-danger"></span>
+        </div>
+        <button type="submit" class="btn btn-success">Assign</button>
+        <a asp-action="Details" asp-route-id="@Model.IssueId" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>

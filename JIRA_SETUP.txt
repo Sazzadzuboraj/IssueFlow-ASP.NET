@@ -1,0 +1,36 @@
+IssueFlow — Jira-style structure
+================================
+
+Components
+- Models/ProjectMember.cs
+- Services/ProjectPermissionService.cs (+ interface)
+- Controllers/BoardController.cs
+- Views/Board/Project.cshtml
+- Views/Project/Members.cshtml
+- Issue.Type: Epic | Story | Task | SubTask
+- Issue.Status workflow:
+  Backlog → ToDo → InProgress → CodeReview → ReadyForTest → Testing → Done
+  Fail path: Testing → Reopened → InProgress
+
+After update
+1. dotnet ef database update
+2. dotnet build
+3. dotnet run
+
+If old status values remain in the database
+  UPDATE Issues SET Status = 'Backlog' WHERE Status IS NULL OR Status = '' OR Status = 'Open';
+  UPDATE Issues SET Status = 'InProgress' WHERE Status = 'In Progress';
+  UPDATE Issues SET Status = 'ReadyForTest' WHERE Status = 'Resolved';
+  UPDATE Issues SET Status = 'Done' WHERE Status IN ('ReadyToLaunch','Closed','Completed');
+
+Usage
+1. Sign in as Admin or ProjectManager
+2. Create a project (you become ProjectManager member)
+3. Project → Team → add Developer / QA with project roles
+4. Create an issue (starts in Backlog)
+5. Project → Board → Kanban columns
+6. Assign a developer; change status from Issue Details
+
+Note: Global Identity role (for example Developer badge) is not the same as the project role on the Team page.
+
+See README.md and ARCHITECTURE.md for full documentation (English).

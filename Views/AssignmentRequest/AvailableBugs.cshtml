@@ -1,0 +1,69 @@
+@model IEnumerable<IssueFlow.Models.Bug>
+@{
+    ViewData["Title"] = "Available Bugs";
+    var search = ViewBag.Search as string;
+    var priority = ViewBag.Priority as string;
+}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="mb-0">Open bugs — request to fix</h5>
+    <div>
+        <a class="btn btn-outline-secondary btn-sm" asp-action="Available" asp-route-type="Issue">Issues</a>
+        <a class="btn btn-outline-primary btn-sm" asp-action="MyRequests">My requests</a>
+    </div>
+</div>
+
+<form method="get" class="row g-2 mb-3" id="filterForm">
+    <input type="hidden" name="type" value="Bug" />
+    <div class="col-md-5">
+        <input name="search" value="@search" class="form-control" placeholder="Search..." id="searchBox" autocomplete="off" />
+    </div>
+    <div class="col-md-3">
+        <select name="priority" class="form-select" onchange="this.form.submit()">
+            <option value="">All priorities</option>
+            @foreach (var p in new[] { "Critical", "High", "Medium", "Low" })
+            {
+                if (priority == p) { <option value="@p" selected>@p</option> }
+                else { <option value="@p">@p</option> }
+            }
+        </select>
+    </div>
+    <div class="col-md-2"><button class="btn btn-primary w-100">Filter</button></div>
+</form>
+
+<div class="card border-0 shadow-sm">
+    <table class="table table-hover mb-0">
+        <thead class="table-light"><tr><th>Title</th><th>Priority</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+        @foreach (var b in Model)
+        {
+            <tr>
+                <td><a asp-controller="Bug" asp-action="Details" asp-route-id="@b.Id">@b.Title</a></td>
+                <td>@b.Priority</td>
+                <td>@b.Status</td>
+                <td>
+                    <form asp-action="RequestWork" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="targetType" value="Bug" />
+                        <input type="hidden" name="targetId" value="@b.Id" />
+                        <button class="btn btn-sm btn-primary">Request</button>
+                    </form>
+                </td>
+            </tr>
+        }
+        @if (!Model.Any())
+        {
+            <tr><td colspan="4" class="text-center text-muted py-4">No matching bugs.</td></tr>
+        }
+        </tbody>
+    </table>
+</div>
+@section Scripts {
+<script>
+(() => {
+  const box = document.getElementById('searchBox');
+  const form = document.getElementById('filterForm');
+  let t;
+  box?.addEventListener('input', () => { clearTimeout(t); t = setTimeout(() => form.submit(), 400); });
+})();
+</script>
+}

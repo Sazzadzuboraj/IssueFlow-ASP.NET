@@ -1,0 +1,28 @@
+@model IssueFlow.Models.ViewModels.AssignBugViewModel
+@{
+    ViewData["Title"] = "Assign Bug";
+}
+
+<h2 class="mb-3">Assign Bug</h2>
+<p class="text-muted">Assign a developer to: <strong>@Model.BugTitle</strong></p>
+
+<div class="card border-0 shadow-sm" style="max-width:480px">
+    <div class="card-body">
+        <form asp-action="Assign" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="BugId" />
+            <input type="hidden" asp-for="BugTitle" />
+
+            <div class="mb-3">
+                <label asp-for="DeveloperId" class="form-label">Developer</label>
+                <select asp-for="DeveloperId" class="form-select" asp-items="Model.Developers">
+                    <option value="">— Select —</option>
+                </select>
+                <span asp-validation-for="DeveloperId" class="text-danger"></span>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Assign</button>
+            <a asp-action="Details" asp-route-id="@Model.BugId" class="btn btn-outline-secondary">Cancel</a>
+        </form>
+    </div>
+</div>

@@ -1,0 +1,78 @@
+@model Project
+@{
+    ViewData["Title"] = "Project team";
+    string RoleLabel(string? role) => role switch
+    {
+        "ProjectManager" => "Project Leader",
+        "QATester" => "QA Tester",
+        _ => role ?? "Member"
+    };
+}
+<div class="d-flex justify-content-between mb-3">
+    <h5>Team — @Model.Name</h5>
+    <div>
+        <a class="btn btn-outline-primary btn-sm" asp-controller="Board" asp-action="Project" asp-route-id="@Model.Id">Board</a>
+        <a class="btn btn-secondary btn-sm" asp-action="Details" asp-route-id="@Model.Id">Back</a>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm mb-4 p-3">
+    <h6>Add member</h6>
+    <form asp-action="AddMember" method="post" class="row g-2 align-items-end">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="projectId" value="@Model.Id" />
+        <div class="col-md-5">
+            <label class="form-label small">User</label>
+            <select name="userId" class="form-select" asp-items="ViewBag.Users" required>
+                <option value="">— select —</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label small">Project role</label>
+            <select name="role" class="form-select" asp-items="ViewBag.Roles" required></select>
+        </div>
+        <div class="col-md-2">
+            <button type="submit" class="btn btn-primary w-100">Add</button>
+        </div>
+    </form>
+    <p class="small text-muted mb-0 mt-2">
+        Project Leader is set automatically when the project is created.
+        Board is shared for the whole team — open <strong>Board</strong> to see the Kanban columns.
+    </p>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <table class="table mb-0">
+        <thead class="table-light"><tr><th>Name</th><th>Email</th><th>Project role</th><th>Joined</th><th></th></tr></thead>
+        <tbody>
+        @foreach (var m in Model.Members ?? Enumerable.Empty<ProjectMember>())
+        {
+            <tr>
+                <td>@m.User?.FullName</td>
+                <td class="small">@m.User?.Email</td>
+                <td>
+                    <span class="badge @(m.Role == "ProjectManager" ? "bg-warning text-dark" : "bg-primary")">
+                        @RoleLabel(m.Role)
+                    </span>
+                </td>
+                <td class="small text-muted">@m.JoinedDate.ToLocalTime().ToString("dd MMM yyyy")</td>
+                <td>
+                    @if (m.Role != "ProjectManager" || (Model.Members?.Count(x => x.Role == "ProjectManager") > 1))
+                    {
+                        <form asp-action="RemoveMember" method="post" class="d-inline">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@m.Id" />
+                            <input type="hidden" name="projectId" value="@Model.Id" />
+                            <button type="submit" class="btn btn-sm btn-outline-danger">Remove</button>
+                        </form>
+                    }
+                </td>
+            </tr>
+        }
+        @if (Model.Members == null || !Model.Members.Any())
+        {
+            <tr><td colspan="5" class="text-center text-muted py-3">No members yet</td></tr>
+        }
+        </tbody>
+    </table>
+</div>

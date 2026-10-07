@@ -1,0 +1,48 @@
+@model IssueFlow.ViewComponents.NotificationBellModel
+
+<div class="dropdown">
+    <a class="text-muted text-decoration-none position-relative" href="#" role="button"
+       data-bs-toggle="dropdown" aria-expanded="false" title="Notifications">
+        <i class="bi bi-bell fs-5"></i>
+        @if (Model.UnreadCount > 0)
+        {
+            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size:0.65rem;">
+                @(Model.UnreadCount > 9 ? "9+" : Model.UnreadCount.ToString())
+            </span>
+        }
+    </a>
+    <ul class="dropdown-menu dropdown-menu-end shadow" style="min-width: 320px; max-height: 400px; overflow-y: auto;">
+        <li class="dropdown-header d-flex justify-content-between align-items-center">
+            <span>Notifications</span>
+            <a class="small" asp-controller="Notification" asp-action="Index">View all</a>
+        </li>
+        <li><hr class="dropdown-divider" /></li>
+        @if (Model.Items.Count == 0)
+        {
+            <li><span class="dropdown-item-text text-muted small">No new notifications</span></li>
+        }
+        else
+        {
+            @foreach (var n in Model.Items)
+            {
+                <li>
+                    @if (!string.IsNullOrEmpty(n.LinkUrl))
+                    {
+                        <a class="dropdown-item small py-2" href="@n.LinkUrl">
+                            <div class="fw-semibold">@n.Title</div>
+                            <div class="text-muted text-truncate">@n.Message</div>
+                            <div class="text-muted" style="font-size:0.7rem;">@n.CreatedDate.ToLocalTime().ToString("dd MMM HH:mm")</div>
+                        </a>
+                    }
+                    else
+                    {
+                        <span class="dropdown-item-text small py-2">
+                            <div class="fw-semibold">@n.Title</div>
+                            <div class="text-muted">@n.Message</div>
+                        </span>
+                    }
+                </li>
+            }
+        }
+    </ul>
+</div>

@@ -1,0 +1,74 @@
+@model IEnumerable<Issue>
+@{
+    ViewData["Title"] = "Available Issues";
+    var search = ViewBag.Search as string;
+    var priority = ViewBag.Priority as string;
+}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="mb-0">Open issues — request to join</h5>
+    <div>
+        <a class="btn btn-outline-secondary btn-sm" asp-action="Available" asp-route-type="Bug">Bugs</a>
+        <a class="btn btn-outline-primary btn-sm" asp-action="MyRequests">My requests</a>
+    </div>
+</div>
+
+<form method="get" class="row g-2 mb-3" id="filterForm">
+    <input type="hidden" name="type" value="Issue" />
+    <div class="col-md-5">
+        <input name="search" value="@search" class="form-control" placeholder="Search title or description..." id="searchBox" autocomplete="off" />
+    </div>
+    <div class="col-md-3">
+        <select name="priority" class="form-select" id="priorityBox" onchange="this.form.submit()">
+            <option value="">All priorities</option>
+            @foreach (var p in new[] { "Critical", "High", "Medium", "Low" })
+            {
+                if (priority == p) { <option value="@p" selected>@p</option> }
+                else { <option value="@p">@p</option> }
+            }
+        </select>
+    </div>
+    <div class="col-md-2"><button type="submit" class="btn btn-primary w-100">Filter</button></div>
+</form>
+
+<div class="card border-0 shadow-sm">
+    <table class="table table-hover mb-0">
+        <thead class="table-light"><tr><th>Title</th><th>Project</th><th>Priority</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+        @foreach (var i in Model)
+        {
+            <tr>
+                <td><a asp-controller="Issue" asp-action="Details" asp-route-id="@i.Id">@i.Title</a></td>
+                <td>@i.Project?.Name</td>
+                <td><span class="badge bg-secondary">@i.Priority</span></td>
+                <td>@i.Status</td>
+                <td>
+                    <form asp-action="RequestWork" method="post" class="d-inline">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="targetType" value="Issue" />
+                        <input type="hidden" name="targetId" value="@i.Id" />
+                        <button type="submit" class="btn btn-sm btn-primary">Request</button>
+                    </form>
+                </td>
+            </tr>
+        }
+        @if (!Model.Any())
+        {
+            <tr><td colspan="5" class="text-center text-muted py-4">No matching issues.</td></tr>
+        }
+        </tbody>
+    </table>
+</div>
+
+@section Scripts {
+<script>
+(() => {
+  const box = document.getElementById('searchBox');
+  const form = document.getElementById('filterForm');
+  let t;
+  box?.addEventListener('input', () => {
+    clearTimeout(t);
+    t = setTimeout(() => form.submit(), 400);
+  });
+})();
+</script>
+}

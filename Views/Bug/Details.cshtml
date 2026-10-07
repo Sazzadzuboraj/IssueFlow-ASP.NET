@@ -1,0 +1,64 @@
+@model IssueFlow.Models.Bug
+@{
+    ViewData["Title"] = "Bug Details";
+    var activity = ViewBag.ActivityLog as List<ActivityLog> ?? new();
+    var isPM = User.IsInRole("Admin") || User.IsInRole("ProjectManager");
+    var isDev = User.IsInRole("Developer");
+    var isQA = User.IsInRole("QATester");
+    var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+    var isAssignee = Model.AssignedDeveloperId == userId;
+}
+
+<div class="card p-4 mb-4 border-0 shadow-sm">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+        <div>
+            <h3><i class="bi bi-bug me-2"></i>@Model.Title</h3>
+            <p class="text-muted">@Model.Description</p>
+            <div class="d-flex gap-3 flex-wrap">
+                <span>Project: <strong>@Model.Project?.Name</strong></span>
+                <span>Status: <span class="badge bg-secondary">@Model.Status</span></span>
+                <span>Priority: <strong>@Model.Priority</strong></span>
+                <span class="small text-muted">Reporter: @Model.ReportedBy?.FullName</span>
+                <span class="small text-muted">Assignee: @(Model.AssignedDeveloper?.FullName ?? "—")</span>
+            </div>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            @if (isPM)
+            {
+                <a class="btn btn-outline-primary btn-sm" asp-action="Assign" asp-route-id="@Model.Id">Assign Developer</a>
+                <a class="btn btn-outline-primary btn-sm" asp-controller="AssignmentRequest" asp-action="DirectOffer"
+                   asp-route-targetType="Bug" asp-route-targetId="@Model.Id" asp-route-kind="Work">Offer to Developer</a>
+            }
+            @if (isDev && (isAssignee || isPM) && Model.Status is "Assigned" or "Reopened")
+            {
+                <form asp-action="SubmitFix" asp-route-id="@Model.Id" method="post" class="d-inline">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-primary btn-sm">Submit Fix for Review</button>
+                </form>
+            }
+            @if ((isQA || isPM) && Model.Status == "ReadyForReview")
+            {
+                <a class="btn btn-success btn-sm" asp-action="Review" asp-route-id="@Model.Id">Review Fix</a>
+            }
+            @if (isDev && !isAssignee && !isPM && Model.Status is "Reported" or "Reopened")
+            {
+                <form asp-controller="AssignmentRequest" asp-action="RequestWork" method="post" class="d-inline">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="targetType" value="Bug" />
+                    <input type="hidden" name="targetId" value="@Model.Id" />
+                    <input type="hidden" name="requestKind" value="Work" />
+                    <button type="submit" class="btn btn-primary btn-sm">Request to fix</button>
+                </form>
+            }
+            <a class="btn btn-outline-secondary btn-sm" asp-action="Index">Back</a>
+        </div>
+    </div>
+</div>
+
+@if (activity.Any())
+{
+    <div class="card border-0 shadow-sm p-3">
+        <h6>Activity</h6>
+        @await Html.PartialAsync("_ActivityTimeline", activity)
+    </div>
+}

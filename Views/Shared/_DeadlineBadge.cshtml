@@ -1,0 +1,41 @@
+@model DateTime?
+@{
+    if (Model == null)
+    {
+        <span class="badge bg-secondary">No deadline</span>
+        return;
+    }
+
+    var deadline = Model.Value.Date;
+    var today = DateTime.Today;
+    var days = (deadline - today).Days;
+
+    string css;
+    string text;
+    if (days < 0)
+    {
+        css = "bg-danger";
+        text = $"Overdue by {-days}d";
+    }
+    else if (days == 0)
+    {
+        css = "bg-danger";
+        text = "Due today";
+    }
+    else if (days <= 2)
+    {
+        css = "bg-warning text-dark";
+        text = $"Due in {days}d";
+    }
+    else if (days <= 7)
+    {
+        css = "bg-info text-dark";
+        text = $"Due in {days}d";
+    }
+    else
+    {
+        css = "bg-success";
+        text = deadline.ToString("dd MMM yyyy");
+    }
+}
+<span class="badge @css" title="@deadline.ToString("yyyy-MM-dd")">@text</span>

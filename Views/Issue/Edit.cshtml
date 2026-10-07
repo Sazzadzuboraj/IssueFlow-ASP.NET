@@ -1,0 +1,42 @@
+@model IssueFlow.DTOs.UpdateIssueDto
+@{
+    ViewData["Title"] = "Edit Issue";
+}
+
+<div class="card p-4 border-0 shadow-sm" style="max-width:700px">
+    <h5 class="mb-3">Edit Issue</h5>
+    <form asp-action="Edit" method="post">
+        <input type="hidden" asp-for="Id" />
+        <div asp-validation-summary="All" class="text-danger"></div>
+        <div class="mb-3">
+            <label asp-for="Title" class="form-label"></label>
+            <input asp-for="Title" class="form-control" />
+            <span asp-validation-for="Title" class="text-danger"></span>
+        </div>
+        <div class="mb-3">
+            <label asp-for="Description" class="form-label"></label>
+            <textarea asp-for="Description" class="form-control" rows="5"></textarea>
+        </div>
+        <div class="row">
+            <div class="col-md-4 mb-3">
+                <label asp-for="ProjectId" class="form-label">Project</label>
+                <select asp-for="ProjectId" class="form-select" asp-items="ViewBag.ProjectId"></select>
+            </div>
+            <div class="col-md-4 mb-3">
+                <label asp-for="Status" class="form-label"></label>
+                <select asp-for="Status" class="form-select" asp-items="ViewBag.StatusList"></select>
+            </div>
+            <div class="col-md-4 mb-3">
+                <label asp-for="Priority" class="form-label"></label>
+                <select asp-for="Priority" class="form-select" asp-items="ViewBag.PriorityList"></select>
+            </div>
+        </div>
+        <div class="mb-3">
+            <label asp-for="Deadline" class="form-label">Deadline</label>
+            <input asp-for="Deadline" type="date" class="form-control" value="@(Model.Deadline?.ToString("yyyy-MM-dd"))" />
+            <span asp-validation-for="Deadline" class="text-danger"></span>
+        </div>
+        <button type="submit" class="btn btn-primary">Save Changes</button>
+        <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>

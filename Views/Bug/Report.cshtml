@@ -1,0 +1,52 @@
+@model IssueFlow.Models.ViewModels.ReportBugViewModel
+@{
+    ViewData["Title"] = "Report Bug";
+}
+
+<h2 class="mb-3"><i class="bi bi-bug me-2"></i>Report a Bug</h2>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <form asp-action="Report" method="post" enctype="multipart/form-data">
+            @Html.AntiForgeryToken()
+            <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+            <div class="mb-3">
+                <label asp-for="Title" class="form-label"></label>
+                <input asp-for="Title" class="form-control" />
+                <span asp-validation-for="Title" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Description" class="form-label"></label>
+                <textarea asp-for="Description" class="form-control" rows="4"></textarea>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label asp-for="ProjectId" class="form-label">Project</label>
+                    <select asp-for="ProjectId" class="form-select" asp-items="Model.Projects">
+                        <option value="">— Select project —</option>
+                    </select>
+                    <span asp-validation-for="ProjectId" class="text-danger"></span>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Priority" class="form-label"></label>
+                    <select asp-for="Priority" class="form-select" asp-items="Model.PriorityOptions"></select>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Screenshots (optional, max 5 MB each)</label>
+                <input type="file" name="attachments" class="form-control" multiple accept=".png,.jpg,.jpeg,.gif,.webp" />
+            </div>
+
+            <button type="submit" class="btn btn-primary">Submit Report</button>
+            <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

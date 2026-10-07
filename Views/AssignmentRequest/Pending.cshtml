@@ -1,0 +1,45 @@
+@model IEnumerable<IssueFlow.Models.AssignmentRequest>
+@{ ViewData["Title"] = "Pending requests"; }
+<div class="d-flex justify-content-between mb-3">
+    <h5>Pending work / review requests</h5>
+    <a class="btn btn-primary btn-sm" asp-action="DirectOffer">Direct offer</a>
+</div>
+<div class="card border-0 shadow-sm">
+<table class="table align-middle mb-0">
+<thead class="table-light"><tr><th>User</th><th>Kind</th><th>Target</th><th>Message</th><th>Actions</th></tr></thead>
+<tbody>
+@foreach (var r in Model)
+{
+    <tr>
+        <td>@r.Requester?.FullName<br/><span class="small text-muted">@r.Requester?.Email</span></td>
+        <td>@r.RequestKind</td>
+        <td>@r.TargetType #@r.TargetId</td>
+        <td class="small">@r.RequestMessage</td>
+        <td class="text-nowrap">
+            <form asp-action="Approve" method="post" class="d-inline">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@r.Id" />
+                <button class="btn btn-sm btn-success">Approve</button>
+            </form>
+            <form asp-action="Reject" method="post" class="d-inline">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@r.Id" />
+                <button class="btn btn-sm btn-outline-danger">Reject</button>
+            </form>
+            <form asp-action="OfferAlternative" method="post" class="d-inline-flex gap-1 mt-1">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@r.Id" />
+                <select name="alternativeType" class="form-select form-select-sm" style="width:90px">
+                    <option value="Issue">Issue</option>
+                    <option value="Bug">Bug</option>
+                </select>
+                <input name="alternativeId" type="number" class="form-control form-control-sm" style="width:70px" placeholder="ID" required />
+                <button class="btn btn-sm btn-warning">Offer other</button>
+            </form>
+        </td>
+    </tr>
+}
+@if (!Model.Any()) { <tr><td colspan="5" class="text-center text-muted py-4">No pending requests</td></tr> }
+</tbody>
+</table>
+</div>

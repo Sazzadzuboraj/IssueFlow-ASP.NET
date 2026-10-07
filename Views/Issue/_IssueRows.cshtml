@@ -1,0 +1,50 @@
+@model IEnumerable<Issue>
+@foreach (var item in Model)
+{
+    <tr>
+        <td>
+            <a asp-action="Details" asp-route-id="@item.Id" class="fw-semibold text-decoration-none">@item.Title</a>
+            @if (!string.IsNullOrEmpty(item.Description) && item.Description.Length > 0)
+            {
+                <div class="small text-muted text-truncate" style="max-width:280px">@(item.Description.Length > 80 ? item.Description.Substring(0, 80) + "…" : item.Description)</div>
+            }
+        </td>
+        <td>@item.Project?.Name</td>
+        <td><span class="badge bg-secondary">@item.Status</span></td>
+        <td>
+            @{
+                var pClass = item.Priority switch
+                {
+                    "Critical" => "bg-danger",
+                    "High" => "bg-warning text-dark",
+                    "Medium" => "bg-info text-dark",
+                    _ => "bg-light text-dark"
+                };
+            }
+            <span class="badge @pClass">@item.Priority</span>
+        </td>
+        <td class="small">
+            @if (item.Deadline.HasValue)
+            {
+                var d = item.Deadline.Value.Date;
+                var today = DateTime.Today;
+                var cls = d < today ? "text-danger fw-semibold" : d == today ? "text-warning fw-semibold" : "text-success";
+                <span class="@cls">@item.Deadline.Value.ToString("dd MMM yyyy")</span>
+            }
+            else
+            {
+                <span class="text-muted">—</span>
+            }
+        </td>
+        <td class="small text-muted">@item.CreatedBy?.FullName</td>
+        <td>
+            <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary">View</a>
+        </td>
+    </tr>
+}
+@if (!Model.Any())
+{
+    <tr>
+        <td colspan="7" class="text-center text-muted py-4">No issues match your filters.</td>
+    </tr>
+}

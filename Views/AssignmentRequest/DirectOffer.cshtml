@@ -1,0 +1,70 @@
+@{
+    ViewData["Title"] = "Direct offer";
+    var targetType = ViewBag.TargetType as string ?? "Issue";
+    var targetId = ViewBag.TargetId as int?;
+    var kind = ViewBag.Kind as string ?? "Work";
+}
+<div class="card p-4 border-0 shadow-sm" style="max-width:520px">
+    <h5 class="mb-3">Offer work / review to a team member</h5>
+    <form asp-action="DirectOffer" method="post">
+        @Html.AntiForgeryToken()
+        <div class="mb-3">
+            <label class="form-label">Target type</label>
+            <select name="targetType" class="form-select">
+                @if (targetType == "Bug")
+                {
+                    <option value="Issue">Issue / Feature</option>
+                    <option value="Bug" selected>Bug</option>
+                }
+                else
+                {
+                    <option value="Issue" selected>Issue / Feature</option>
+                    <option value="Bug">Bug</option>
+                }
+            </select>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Target ID</label>
+            <input name="targetId" type="number" class="form-control" value="@targetId" required />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Kind</label>
+            <select name="requestKind" class="form-select">
+                @if (kind == "Review")
+                {
+                    <option value="Work">Development work</option>
+                    <option value="Review" selected>QA Review</option>
+                }
+                else
+                {
+                    <option value="Work" selected>Development work</option>
+                    <option value="Review">QA Review</option>
+                }
+            </select>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Assign to</label>
+            <select name="userId" class="form-select" required>
+                <option value="">— select user —</option>
+                <optgroup label="Developers">
+                    @foreach (var item in (ViewBag.Developers as SelectList)!)
+                    {
+                        <option value="@item.Value">@item.Text</option>
+                    }
+                </optgroup>
+                <optgroup label="QA Testers">
+                    @foreach (var item in (ViewBag.Testers as SelectList)!)
+                    {
+                        <option value="@item.Value">@item.Text</option>
+                    }
+                </optgroup>
+            </select>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Message (optional)</label>
+            <textarea name="message" class="form-control" rows="2"></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">Send offer</button>
+        <a asp-action="Pending" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>

@@ -1,0 +1,41 @@
+@model IEnumerable<Subscription>
+@{
+    ViewData["Title"] = "All Subscriptions (Admin)";
+}
+
+<div class="card">
+    <table class="table table-hover mb-0">
+        <thead class="table-light">
+            <tr>
+                <th>User</th>
+                <th>Plan</th>
+                <th>Start</th>
+                <th>End</th>
+                <th>Amount</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var s in Model)
+            {
+                <tr>
+                    <td>@s.User?.FullName (@s.User?.Email)</td>
+                    <td>@s.Plan</td>
+                    <td>@s.StartDate.ToString("dd MMM yyyy")</td>
+                    <td>@s.EndDate.ToString("dd MMM yyyy")</td>
+                    <td>৳@s.Amount</td>
+                    <td>
+                        @if (s.IsActive && s.EndDate >= DateTime.Now)
+                        {
+                            <span class="badge bg-success">Active</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary">Expired</span>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

@@ -1,0 +1,255 @@
+@model IssueFlow.Models.ViewModels.ManagerDashboardViewModel
+@{
+    ViewData["Title"] = "Manager Dashboard";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0"><i class="bi bi-speedometer2 me-2"></i>Manager Dashboard</h2>
+</div>
+
+<!-- Stat cards -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card card-stat p-3 bg-primary-subtle border border-primary-subtle">
+            <div class="text-muted small">Projects</div>
+            <div class="fs-3 fw-bold">@Model.Stats.TotalProjects</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-stat p-3 bg-warning-subtle border border-warning-subtle">
+            <div class="text-muted small">Issues (Open / Total)</div>
+            <div class="fs-3 fw-bold">@Model.Stats.OpenIssues <span class="fs-6 text-muted">/ @Model.Stats.TotalIssues</span></div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-stat p-3 bg-danger-subtle border border-danger-subtle">
+            <div class="text-muted small">Bugs (Open / Total)</div>
+            <div class="fs-3 fw-bold">@Model.Stats.OpenBugs <span class="fs-6 text-muted">/ @Model.Stats.TotalBugs</span></div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-stat p-3 bg-info-subtle border border-info-subtle border-warning">
+            <div class="text-muted small">Ready for Review</div>
+            <div class="fs-3 fw-bold text-warning">
+                @(Model.Stats.ReadyForReviewIssues + Model.Stats.ReadyForReviewBugs)
+            </div>
+            <div class="small mt-1">
+                <a asp-controller="AssignmentRequest" asp-action="Available" asp-route-kind="Review">
+                    Issues: @Model.Stats.ReadyForReviewIssues
+                </a>
+                ·
+                <a asp-controller="Bug" asp-action="Index" asp-route-status="ReadyForReview">
+                    Bugs: @Model.Stats.ReadyForReviewBugs
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Section (Resized & Centered) -->
+<div class="row g-4 mb-4">
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white fw-semibold">Issues by Status</div>
+            <div class="card-body d-flex align-items-center justify-content-center p-3">
+                <div style="position: relative; height: 300px; width: 100%; max-width: 320px; margin: 0 auto;">
+                    <canvas id="issuesStatusChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white fw-semibold">Bugs by Status</div>
+            <div class="card-body d-flex align-items-center justify-content-center p-3">
+                <div style="position: relative; height: 300px; width: 100%; max-width: 320px; margin: 0 auto;">
+                    <canvas id="bugsStatusChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <!-- Pending extensions -->
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white fw-semibold d-flex justify-content-between">
+                <span><i class="bi bi-hourglass-split me-1"></i> Pending Extensions</span>
+                <span class="badge bg-warning text-dark">@Model.PendingExtensions.Count</span>
+            </div>
+            <div class="card-body p-0">
+                @if (Model.PendingExtensions.Count == 0)
+                {
+                    <p class="text-muted small p-3 mb-0">No pending requests.</p>
+                }
+                else
+                {
+                    <table class="table table-sm table-hover mb-0">
+                        <thead><tr><th>Issue</th><th>Deadline</th><th></th></tr></thead>
+                        <tbody>
+                            @foreach (var issue in Model.PendingExtensions)
+                            {
+                                <tr>
+                                    <td>
+                                        <a asp-controller="Issue" asp-action="Details" asp-route-id="@issue.Id">@issue.Title</a>
+                                        <div class="small text-muted">@issue.ExtensionReason</div>
+                                    </td>
+                                    <td>
+                                        <div class="small">Current: @await Html.PartialAsync("_DeadlineBadge", issue.Deadline)</div>
+                                        <div class="small">Requested: @issue.RequestedNewDeadline?.ToString("dd MMM yyyy")</div>
+                                    </td>
+                                    <td class="text-nowrap">
+                                        <form asp-controller="Issue" asp-action="ReviewExtension" method="post" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@issue.Id" />
+                                            <input type="hidden" name="approve" value="true" />
+                                            <button class="btn btn-sm btn-success" type="submit">Approve</button>
+                                        </form>
+                                        <form asp-controller="Issue" asp-action="ReviewExtension" method="post" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@issue.Id" />
+                                            <input type="hidden" name="approve" value="false" />
+                                            <button class="btn btn-sm btn-outline-danger" type="submit">Reject</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Unassigned bugs -->
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white fw-semibold">
+                <i class="bi bi-bug me-1"></i> Unassigned Bugs
+            </div>
+            <div class="card-body p-0">
+                @if (Model.UnassignedBugs.Count == 0)
+                {
+                    <p class="text-muted small p-3 mb-0">All bugs are assigned.</p>
+                }
+                else
+                {
+                    <ul class="list-group list-group-flush">
+                        @foreach (var bug in Model.UnassignedBugs)
+                        {
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <a asp-controller="Bug" asp-action="Details" asp-route-id="@bug.Id">@bug.Title</a>
+                                    <div class="small text-muted">@bug.Project?.Name · @bug.Priority</div>
+                                </div>
+                                <a class="btn btn-sm btn-outline-primary" asp-controller="Bug" asp-action="Assign" asp-route-id="@bug.Id">Assign</a>
+                            </li>
+                        }
+                    </ul>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Team performance -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-white fw-semibold"><i class="bi bi-people me-1"></i> Team Performance</div>
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th class=" text-red-600">Name</th>
+                    <th>Role</th>
+                    <th>Avg Score</th>
+                    <th>Completed</th>
+                    <th>Open assignments</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var m in Model.TeamPerformance)
+                {
+                    <tr>
+                        <td>@m.FullName</td>
+                        <td><span class="badge bg-secondary">@m.Role</span></td>
+                        <td>
+                            @if (m.AverageScore.HasValue)
+                            {
+                                var score = m.AverageScore.Value;
+                                var badge = score >= 80 ? "bg-success" : score >= 60 ? "bg-warning text-dark" : "bg-danger";
+                                <span class="badge @badge">@score.ToString("0.0")</span>
+                            }
+                            else
+                            {
+                                <span class="text-muted">—</span>
+                            }
+                        </td>
+                        <td>@m.CompletedCount</td>
+                        <td>@m.OpenAssignments</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script>
+        const issueLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.IssuesByStatus.Keys));
+        const issueData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.IssuesByStatus.Values));
+        const bugLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.BugsByStatus.Keys));
+        const bugData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.BugsByStatus.Values));
+
+        new Chart(document.getElementById('issuesStatusChart'), {
+            type: 'doughnut',
+            data: {
+                labels: issueLabels,
+                datasets: [{
+                    data: issueData,
+                    backgroundColor: ['#3b82f6', '#f59e0b', '#10b981', '#64748b', '#ef4444']
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            boxWidth: 12,
+                            font: { size: 11 }
+                        }
+                    }
+                }
+            }
+        });
+
+        new Chart(document.getElementById('bugsStatusChart'), {
+            type: 'doughnut',
+            data: {
+                labels: bugLabels,
+                datasets: [{
+                    data: bugData,
+                    backgroundColor: ['#8b5cf6', '#3b82f6', '#f59e0b', '#10b981', '#ef4444', '#64748b']
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            boxWidth: 12,
+                            font: { size: 11 }
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+}

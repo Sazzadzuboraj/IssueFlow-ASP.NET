@@ -1,0 +1,127 @@
+@model List<IssueFlow.Models.Bug>
+@{
+    ViewData["Title"] = "Bugs";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0"><i class="bi bi-bug me-2"></i>Bugs</h2>
+    @if (User.IsInRole("QATester"))
+    {
+        <a class="btn btn-primary" asp-action="Report"><i class="bi bi-plus-lg"></i> Report Bug</a>
+    }
+</div>
+
+<div class="card p-3 mb-3 border-0 shadow-sm">
+    <div class="row g-2 align-items-end">
+        <div class="col-md-4">
+            <label class="form-label small text-muted">Search</label>
+            <input type="text" id="fSearch" class="form-control" placeholder="Type to search…" autocomplete="off"
+                   value="@ViewBag.Search" />
+        </div>
+        <div class="col-md-2">
+            <label class="form-label small text-muted">Status</label>
+            <select id="fStatus" class="form-select" asp-items="ViewBag.StatusList">
+                <option value="">All</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label small text-muted">Priority</label>
+            <select id="fPriority" class="form-select" asp-items="ViewBag.PriorityList">
+                <option value="">All</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label small text-muted">Project</label>
+            <select id="fProject" class="form-select" asp-items="ViewBag.ProjectList">
+                <option value="">All</option>
+            </select>
+        </div>
+        <div class="col-md-1">
+            <button type="button" id="fClear" class="btn btn-outline-secondary w-100">Clear</button>
+        </div>
+    </div>
+    <div class="small text-muted mt-2" id="resultHint"></div>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0 align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>Title</th>
+                    <th>Project</th>
+                    <th>Status</th>
+                    <th>Priority</th>
+                    <th>Reporter</th>
+                    <th>Assignee</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody id="bugTableBody">
+                @await Html.PartialAsync("_BugRows", Model)
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+(function () {
+    const body = document.getElementById('bugTableBody');
+    const hint = document.getElementById('resultHint');
+    let timer = null;
+    let seq = 0;
+
+    function params() {
+        const p = new URLSearchParams();
+        const s = document.getElementById('fSearch').value.trim();
+        const st = document.getElementById('fStatus').value;
+        const pr = document.getElementById('fPriority').value;
+        const pj = document.getElementById('fProject').value;
+        if (s) p.set('search', s);
+        if (st) p.set('status', st);
+        if (pr) p.set('priority', pr);
+        if (pj) p.set('projectId', pj);
+        return p;
+    }
+
+    async function load() {
+        const my = ++seq;
+        hint.textContent = 'Searching…';
+        body.style.opacity = '0.5';
+        try {
+            const res = await fetch('/Bug/SearchResults?' + params().toString(), {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const html = await res.text();
+            if (my !== seq) return;
+            body.innerHTML = html;
+            hint.textContent = '';
+            const q = params().toString();
+            history.replaceState(null, '', q ? ('/Bug?' + q) : '/Bug');
+        } catch (e) {
+            if (my === seq) hint.textContent = 'Search failed. Try again.';
+        } finally {
+            if (my === seq) body.style.opacity = '1';
+        }
+    }
+
+    document.getElementById('fSearch').addEventListener('input', function () {
+        clearTimeout(timer);
+        timer = setTimeout(load, 300);
+    });
+    ['fStatus', 'fPriority', 'fProject'].forEach(id => {
+        document.getElementById(id).addEventListener('change', load);
+    });
+    document.getElementById('fClear').addEventListener('click', function () {
+        document.getElementById('fSearch').value = '';
+        document.getElementById('fStatus').value = '';
+        document.getElementById('fPriority').value = '';
+        document.getElementById('fProject').value = '';
+        load();
+        document.getElementById('fSearch').focus();
+    });
+})();
+</script>
+}

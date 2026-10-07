@@ -1,0 +1,40 @@
+@model IEnumerable<IssueFlow.Models.AssignmentRequest>
+@{ ViewData["Title"] = "My requests & offers"; }
+<div class="d-flex justify-content-between mb-3">
+    <h5>My requests &amp; offers</h5>
+    <a class="btn btn-primary btn-sm" asp-action="Available">Browse work</a>
+</div>
+<div class="card border-0 shadow-sm">
+<table class="table mb-0 align-middle">
+<thead class="table-light"><tr><th>Kind</th><th>Target</th><th>Status</th><th>Note</th><th></th></tr></thead>
+<tbody>
+@foreach (var r in Model)
+{
+    <tr>
+        <td>@r.RequestKind</td>
+        <td>@r.TargetType #@r.TargetId
+            @if (r.AlternativeTargetId != null) { <span class="text-muted">→ @r.AlternativeTargetType #@r.AlternativeTargetId</span> }
+        </td>
+        <td><span class="badge bg-secondary">@r.Status</span></td>
+        <td class="small">@r.ManagerResponse</td>
+        <td>
+            @if (r.Status == "Offered")
+            {
+                <form asp-action="AcceptOffer" method="post" class="d-inline">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" value="@r.Id" />
+                    <button class="btn btn-sm btn-success">Accept</button>
+                </form>
+                <form asp-action="RejectOffer" method="post" class="d-inline">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" value="@r.Id" />
+                    <button class="btn btn-sm btn-outline-danger">Reject</button>
+                </form>
+            }
+        </td>
+    </tr>
+}
+@if (!Model.Any()) { <tr><td colspan="5" class="text-center text-muted py-4">Nothing yet</td></tr> }
+</tbody>
+</table>
+</div>

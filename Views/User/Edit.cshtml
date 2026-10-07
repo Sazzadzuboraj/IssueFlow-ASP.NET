@@ -1,0 +1,63 @@
+@model ApplicationUser
+@{
+    ViewData["Title"] = "Edit User";
+    var allRoles = ViewBag.AllRoles as List<string>;
+    var userRoles = ViewBag.UserRoles as IList<string>;
+    var currentRole = userRoles?.FirstOrDefault() ?? "";
+}
+
+<div class="card p-4" style="max-width:600px">
+    <h5 class="mb-3">Edit User: @Model.Email</h5>
+    <form asp-action="Edit" method="post">
+        <input type="hidden" name="id" value="@Model.Id" />
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Full Name</label>
+                <input type="text" name="fullName" value="@Model.FullName" class="form-control" required />
+            </div>
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Employee ID</label>
+                <input type="text" name="employeeCode" value="@Model.EmployeeCode" class="form-control" />
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Position</label>
+                <input type="text" name="position" value="@Model.Position" class="form-control" />
+            </div>
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Phone Number</label>
+                <input type="text" name="phoneNumber" value="@Model.PhoneNumber" class="form-control" />
+            </div>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Address</label>
+            <textarea name="address" class="form-control" rows="2">@Model.Address</textarea>
+        </div>
+        <div class="mb-3 form-check">
+            <input type="checkbox" name="isActive" value="true" class="form-check-input" @(Model.IsActive ? "checked" : "") />
+            <label class="form-check-label">Is Active</label>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Assign Role</label>
+            <select name="selectedRole" class="form-select">
+                @if (allRoles != null)
+                {
+                    foreach (var role in allRoles)
+                    {
+                        if (role == currentRole)
+                        {
+                            <option value="@role" selected>@role</option>
+                        }
+                        else
+                        {
+                            <option value="@role">@role</option>
+                        }
+                    }
+                }
+            </select>
+        </div>
+        <button type="submit" class="btn btn-primary">Save Changes</button>
+        <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>

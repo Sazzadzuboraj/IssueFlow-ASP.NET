@@ -1,0 +1,110 @@
+@model IssueFlow.Models.ViewModels.TesterDashboardViewModel
+@{
+    ViewData["Title"] = "Tester Dashboard";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0"><i class="bi bi-clipboard-check me-2"></i>Tester Dashboard</h2>
+    <div>
+        @if (Model.MyAverageScore.HasValue)
+        {
+            <span class="badge bg-primary fs-6 me-2">My avg score: @Model.MyAverageScore.Value.ToString("0.0")</span>
+        }
+        <a class="btn btn-primary btn-sm" asp-controller="Bug" asp-action="Report">
+            <i class="bi bi-plus-lg"></i> Report Bug
+        </a>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-4"><div class="card card-stat p-3"><div class="text-muted small">Bugs I Reported</div><div class="fs-3 fw-bold">@Model.Stats.TotalBugs</div></div></div>
+    <div class="col-md-4"><div class="card card-stat p-3 border-warning"><div class="text-muted small">Awaiting My Review</div><div class="fs-3 fw-bold text-warning">@Model.Stats.ReadyForReviewBugs</div></div></div>
+    <div class="col-md-4"><div class="card card-stat p-3"><div class="text-muted small">Verified</div><div class="fs-3 fw-bold text-success">@Model.Stats.VerifiedBugs</div></div></div>
+</div>
+
+<div class="row g-4">
+    <div class="col-md-7">
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white fw-semibold">
+                <i class="bi bi-eye me-1"></i> Awaiting Review
+            </div>
+            <div class="card-body p-0">
+                @if (Model.AwaitingMyReview.Count == 0)
+                {
+                    <p class="text-muted small p-3 mb-0">Nothing to review right now.</p>
+                }
+                else
+                {
+                    <table class="table table-sm table-hover mb-0">
+                        <thead><tr><th>Title</th><th>Developer</th><th>Priority</th><th></th></tr></thead>
+                        <tbody>
+                        @foreach (var bug in Model.AwaitingMyReview)
+                        {
+                            <tr>
+                                <td><a asp-controller="Bug" asp-action="Details" asp-route-id="@bug.Id">@bug.Title</a></td>
+                                <td>@(bug.AssignedDeveloper?.FullName ?? bug.AssignedDeveloper?.Email ?? "—")</td>
+                                <td><span class="badge bg-secondary">@bug.Priority</span></td>
+                                <td>
+                                    <a class="btn btn-sm btn-success" asp-controller="Bug" asp-action="Review" asp-route-id="@bug.Id">Review</a>
+                                </td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                }
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white fw-semibold">Bugs I Reported</div>
+            <div class="card-body p-0">
+                @if (Model.MyReportedBugs.Count == 0)
+                {
+                    <p class="text-muted small p-3 mb-0">You haven't reported any bugs yet.</p>
+                }
+                else
+                {
+                    <table class="table table-sm table-hover mb-0">
+                        <thead><tr><th>Title</th><th>Status</th><th>Priority</th><th>Project</th></tr></thead>
+                        <tbody>
+                        @foreach (var bug in Model.MyReportedBugs)
+                        {
+                            <tr>
+                                <td><a asp-controller="Bug" asp-action="Details" asp-route-id="@bug.Id">@bug.Title</a></td>
+                                <td>@bug.Status</td>
+                                <td><span class="badge bg-secondary">@bug.Priority</span></td>
+                                <td>@bug.Project?.Name</td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-5">
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white fw-semibold">Recent Ratings</div>
+            <div class="card-body p-0">
+                @if (Model.RecentRatings.Count == 0)
+                {
+                    <p class="text-muted small p-3 mb-0">No ratings yet.</p>
+                }
+                else
+                {
+                    <ul class="list-group list-group-flush">
+                        @foreach (var r in Model.RecentRatings.Take(8))
+                        {
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span class="small">@r.Reason</span>
+                                <span class="badge bg-primary">@r.Score.ToString("0")</span>
+                            </li>
+                        }
+                    </ul>
+                }
+            </div>
+        </div>
+        @await Html.PartialAsync("_ActivityTimeline", Model.RecentActivity)
+    </div>
+</div>

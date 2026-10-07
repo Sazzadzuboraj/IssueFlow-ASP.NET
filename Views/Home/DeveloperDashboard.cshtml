@@ -1,0 +1,120 @@
+@model IssueFlow.Models.ViewModels.DeveloperDashboardViewModel
+@{
+    ViewData["Title"] = "Developer Dashboard";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0"><i class="bi bi-code-slash me-2"></i>Developer Dashboard</h2>
+    @if (Model.MyAverageScore.HasValue)
+    {
+        <span class="badge bg-primary fs-6">My avg score: @Model.MyAverageScore.Value.ToString("0.0")</span>
+    }
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3"><div class="card card-stat p-3"><div class="text-muted small">My Issues</div><div class="fs-3 fw-bold">@Model.Stats.TotalIssues</div></div></div>
+    <div class="col-md-3"><div class="card card-stat p-3"><div class="text-muted small">In Progress</div><div class="fs-3 fw-bold">@Model.Stats.InProgressIssues</div></div></div>
+    <div class="col-md-3"><div class="card card-stat p-3"><div class="text-muted small">My Bugs</div><div class="fs-3 fw-bold">@Model.Stats.TotalBugs</div></div></div>
+    <div class="col-md-3"><div class="card card-stat p-3 border-warning"><div class="text-muted small">Ready for Review</div><div class="fs-3 fw-bold text-warning">@Model.Stats.ReadyForReviewBugs</div></div></div>
+</div>
+
+<div class="row g-4">
+    <div class="col-md-7">
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white fw-semibold">My Assigned Issues</div>
+            <div class="card-body p-0">
+                @if (Model.MyIssues.Count == 0)
+                {
+                    <p class="text-muted small p-3 mb-0">No open issues assigned to you.</p>
+                }
+                else
+                {
+                    <table class="table table-sm table-hover mb-0">
+                        <thead><tr><th>Title</th><th>Priority</th><th>Status</th><th>Deadline</th><th></th></tr></thead>
+                        <tbody>
+                        @foreach (var issue in Model.MyIssues)
+                        {
+                            <tr>
+                                <td><a asp-controller="Issue" asp-action="Details" asp-route-id="@issue.Id">@issue.Title</a></td>
+                                <td><span class="badge bg-secondary">@issue.Priority</span></td>
+                                <td>@issue.Status</td>
+                                <td>@await Html.PartialAsync("_DeadlineBadge", issue.Deadline)</td>
+                                <td>
+                                    @if (issue.ExtensionStatus != "Pending")
+                                    {
+                                        <a class="btn btn-sm btn-outline-secondary" asp-controller="Issue" asp-action="RequestExtension" asp-route-id="@issue.Id">Extend</a>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-warning text-dark">Extension pending</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                }
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white fw-semibold">My Assigned Bugs</div>
+            <div class="card-body p-0">
+                @if (Model.MyBugs.Count == 0)
+                {
+                    <p class="text-muted small p-3 mb-0">No open bugs assigned to you.</p>
+                }
+                else
+                {
+                    <table class="table table-sm table-hover mb-0">
+                        <thead><tr><th>Title</th><th>Priority</th><th>Status</th><th></th></tr></thead>
+                        <tbody>
+                        @foreach (var bug in Model.MyBugs)
+                        {
+                            <tr>
+                                <td><a asp-controller="Bug" asp-action="Details" asp-route-id="@bug.Id">@bug.Title</a></td>
+                                <td><span class="badge bg-secondary">@bug.Priority</span></td>
+                                <td>@bug.Status</td>
+                                <td>
+                                    @if (bug.Status is "Assigned" or "Reopened")
+                                    {
+                                        <form asp-controller="Bug" asp-action="SubmitFix" asp-route-id="@bug.Id" method="post" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-sm btn-primary">Submit Fix</button>
+                                        </form>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-5">
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white fw-semibold">Recent Ratings</div>
+            <div class="card-body p-0">
+                @if (Model.RecentRatings.Count == 0)
+                {
+                    <p class="text-muted small p-3 mb-0">No ratings yet.</p>
+                }
+                else
+                {
+                    <ul class="list-group list-group-flush">
+                        @foreach (var r in Model.RecentRatings.Take(8))
+                        {
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span class="small">@r.Reason</span>
+                                <span class="badge bg-primary">@r.Score.ToString("0")</span>
+                            </li>
+                        }
+                    </ul>
+                }
+            </div>
+        </div>
+        @await Html.PartialAsync("_ActivityTimeline", Model.RecentActivity)
+    </div>
+</div>

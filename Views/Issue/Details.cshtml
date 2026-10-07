@@ -1,0 +1,380 @@
+@model Issue
+@using IssueFlow.Constants
+@{
+    ViewData["Title"] = "Issue Details";
+    var activity = ViewBag.ActivityLog as List<ActivityLog> ?? new();
+    var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+    var isAssigned = Model.Assignments != null && Model.Assignments.Any(a => a.UserId == userId);
+    var isPM = User.IsInRole("Admin") || User.IsInRole("ProjectManager");
+    var isDev = User.IsInRole("Developer");
+    var isQA = User.IsInRole("QATester");
+    // Normalize legacy DB values (Open, In Progress, etc.) so buttons still show
+    var status = IssueStatuses.Normalize(Model.Status);
+
+    var canStart = status == IssueStatuses.Backlog || status == IssueStatuses.ToDo || status == IssueStatuses.Reopened;
+    var canProgress = status == IssueStatuses.InProgress;
+    var canAfterReview = status == IssueStatuses.CodeReview;
+    var canRequestWork = canStart || canProgress;
+    var canReviewQueue = status == IssueStatuses.ReadyForTest || status == IssueStatuses.CodeReview || status == IssueStatuses.Testing;
+    var showDevStatusForm = canStart || canProgress || canAfterReview;
+
+    string BadgeClass(string? s)
+    {
+        var n = IssueStatuses.Normalize(s);
+        if (n == IssueStatuses.Backlog || n == IssueStatuses.ToDo) return "bg-secondary";
+        if (n == IssueStatuses.InProgress) return "bg-info text-dark";
+        if (n == IssueStatuses.CodeReview) return "bg-primary";
+        if (n == IssueStatuses.ReadyForTest || n == IssueStatuses.Testing) return "bg-warning text-dark";
+        if (n == IssueStatuses.Done) return "bg-success";
+        if (n == IssueStatuses.Reopened) return "bg-danger";
+        return "bg-secondary";
+    }
+}
+
+<div class="card p-4 mb-4 border-0 shadow-sm">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+        <div>
+            <h3>@Model.Title</h3>
+            <p class="text-muted">@Model.Description</p>
+            <div class="d-flex gap-3 flex-wrap align-items-center">
+                <span>Project: <strong>@Model.Project?.Name</strong></span>
+                <span>Type: <strong>@Model.Type</strong></span>
+                <span>Status:
+                    <span class="badge @BadgeClass(Model.Status)">@status</span>
+                </span>
+                <span>Priority: <strong>@Model.Priority</strong></span>
+                <span>Deadline: @await Html.PartialAsync("_DeadlineBadge", Model.Deadline)</span>
+            </div>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            @if (isPM)
+            {
+                <a class="btn btn-outline-primary btn-sm" asp-action="Assign" asp-route-id="@Model.Id">Assign Developer</a>
+                <a class="btn btn-outline-primary btn-sm" asp-controller="AssignmentRequest" asp-action="DirectOffer"
+                   asp-route-targetType="Issue" asp-route-targetId="@Model.Id" asp-route-kind="Work">Offer to Developer</a>
+                @if (canReviewQueue)
+                {
+                    <a class="btn btn-outline-success btn-sm" asp-controller="AssignmentRequest" asp-action="DirectOffer"
+                       asp-route-targetType="Issue" asp-route-targetId="@Model.Id" asp-route-kind="Review">Offer QA Review</a>
+                }
+                <a class="btn btn-outline-secondary btn-sm" asp-action="Edit" asp-route-id="@Model.Id">Edit</a>
+            }
+
+            @if (isDev && !isPM)
+            {
+                @if (!isAssigned)
+                {
+                    @if (canRequestWork)
+                    {
+                        <form asp-controller="AssignmentRequest" asp-action="RequestWork" method="post" class="d-inline">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="targetType" value="Issue" />
+                            <input type="hidden" name="targetId" value="@Model.Id" />
+                            <input type="hidden" name="requestKind" value="Work" />
+                            <button type="submit" class="btn btn-primary btn-sm">Request this work</button>
+                        </form>
+                    }
+                    <span class="text-muted small align-self-center">Status update: ask PM to assign you first.</span>
+                }
+                else
+                {
+                    @if (canStart)
+                    {
+                        <form asp-action="UpdateStatus" method="post" class="d-inline">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@Model.Id" />
+                            <input type="hidden" name="status" value="@IssueStatuses.InProgress" />
+                            <button type="submit" class="btn btn-info btn-sm text-white">Start (In Progress)</button>
+                        </form>
+                    }
+                    @if (canProgress)
+                    {
+                        <form asp-action="UpdateStatus" method="post" class="d-inline">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@Model.Id" />
+                            <input type="hidden" name="status" value="@IssueStatuses.CodeReview" />
+                            <button type="submit" class="btn btn-primary btn-sm">Submit for Code Review</button>
+                        </form>
+                        <form asp-action="UpdateStatus" method="post" class="d-inline">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@Model.Id" />
+                            <input type="hidden" name="status" value="@IssueStatuses.ReadyForTest" />
+                            <button type="submit" class="btn btn-warning btn-sm">Ready for Test</button>
+                        </form>
+                    }
+                    @if (canAfterReview)
+                    {
+                        <form asp-action="UpdateStatus" method="post" class="d-inline">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@Model.Id" />
+                            <input type="hidden" name="status" value="@IssueStatuses.ReadyForTest" />
+                            <button type="submit" class="btn btn-warning btn-sm">Ready for Test</button>
+                        </form>
+                    }
+                    @if (showDevStatusForm)
+                    {
+                        <form asp-action="UpdateStatus" method="post" class="d-inline-flex gap-1 align-items-center">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@Model.Id" />
+                            <select name="status" class="form-select form-select-sm" style="width:auto">
+                                @if (canStart)
+                                {
+                                    <option value="@IssueStatuses.InProgress">InProgress</option>
+                                }
+                                @if (canProgress)
+                                {
+                                    <option value="@IssueStatuses.CodeReview">CodeReview</option>
+                                    <option value="@IssueStatuses.ReadyForTest">ReadyForTest</option>
+                                }
+                                @if (canAfterReview)
+                                {
+                                    <option value="@IssueStatuses.ReadyForTest">ReadyForTest</option>
+                                }
+                            </select>
+                            <button type="submit" class="btn btn-sm btn-outline-primary">Update status</button>
+                        </form>
+                    }
+                    <a class="btn btn-outline-secondary btn-sm" asp-action="RequestExtension" asp-route-id="@Model.Id">Request extension</a>
+                }
+            }
+
+            @if (isQA && !isPM)
+            {
+                @if (canReviewQueue)
+                {
+                    <form asp-controller="AssignmentRequest" asp-action="RequestWork" method="post" class="d-inline">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="targetType" value="Issue" />
+                        <input type="hidden" name="targetId" value="@Model.Id" />
+                        <input type="hidden" name="requestKind" value="Review" />
+                        <button type="submit" class="btn btn-primary btn-sm">Request to review</button>
+                    </form>
+                    <form asp-action="MarkReadyToLaunch" method="post" class="d-inline">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@Model.Id" />
+                        <button type="submit" class="btn btn-success btn-sm">Mark Done</button>
+                    </form>
+                    <a class="btn btn-outline-danger btn-sm" asp-controller="Bug" asp-action="Report">Report Bug</a>
+                }
+                @if (status == IssueStatuses.Done)
+                {
+                    <span class="badge bg-success align-self-center">Done</span>
+                }
+            }
+
+            <a class="btn btn-outline-secondary btn-sm" asp-action="Index">Back</a>
+        </div>
+    </div>
+
+    @if (isPM)
+    {
+        <hr />
+        <form asp-action="ChangeStatus" method="post" class="row g-2 align-items-end">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" value="@Model.Id" />
+            <div class="col-auto">
+                <label class="form-label small mb-0">Change status</label>
+                <select name="status" class="form-select form-select-sm">
+                    @foreach (var s in IssueStatuses.All)
+                    {
+                        <option value="@s" selected="@(status == s)">@s</option>
+                    }
+                </select>
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-sm btn-primary">Update status</button>
+            </div>
+        </form>
+    }
+
+    @if (Model.ExtensionStatus == "Pending" && isPM)
+    {
+        <hr />
+        <div class="alert alert-warning py-2">
+            Extension requested to <strong>@Model.RequestedNewDeadline?.ToString("yyyy-MM-dd")</strong>:
+            @Model.ExtensionReason
+            <form asp-action="ReviewExtension" method="post" class="d-inline ms-2">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@Model.Id" />
+                <input type="hidden" name="approve" value="true" />
+                <button type="submit" class="btn btn-sm btn-success">Approve</button>
+            </form>
+            <form asp-action="ReviewExtension" method="post" class="d-inline">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@Model.Id" />
+                <input type="hidden" name="approve" value="false" />
+                <button type="submit" class="btn btn-sm btn-outline-danger">Reject</button>
+            </form>
+        </div>
+    }
+
+    @if (Model.Assignments != null && Model.Assignments.Any())
+    {
+        <hr />
+        <div class="small">
+            <strong>Assigned developers:</strong>
+            @string.Join(", ", Model.Assignments.Select(a => a.User?.FullName ?? a.UserId))
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(Model.Project?.FolderPath))
+    {
+        <hr />
+        <div class="small text-muted">
+            Project folder: <code>uploads/projects/@Model.Project.FolderPath/</code>
+        </div>
+    }
+</div>
+
+@{
+    var attachments = Model.Attachments?.OrderBy(a => a.FileType).ThenByDescending(a => a.UploadedDate).ToList()
+        ?? new List<IssueAttachment>();
+    var canUploadFiles = isAssigned || isPM;
+    var canSeeFiles = canUploadFiles || isQA || isPM || User.IsInRole("Admin");
+    var grouped = attachments.GroupBy(a => a.FileType);
+}
+
+@if (canSeeFiles)
+{
+    <div class="card border-0 shadow-sm p-3 mb-3">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+            <h6 class="mb-0">Source files <span class="text-muted fw-normal small">(project file system)</span></h6>
+            <div class="d-flex flex-wrap gap-2 align-items-center">
+                @if (canReviewQueue)
+                {
+                    <span class="badge bg-info text-dark">Visible to reviewer</span>
+                }
+                @if (attachments.Any())
+                {
+                    <a class="btn btn-sm btn-success"
+                       asp-action="DownloadIssueZip"
+                       asp-route-issueId="@Model.Id"
+                       title="Download all files as ZIP">
+                        <i class="bi bi-file-earmark-zip"></i> Download all (ZIP)
+                    </a>
+                }
+            </div>
+        </div>
+
+        @if (attachments.Any())
+        {
+            foreach (var group in grouped)
+            {
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-1 mb-1">
+                        <div class="fw-semibold small text-uppercase text-muted mb-0">
+                            <i class="bi bi-folder2"></i> @group.Key
+                            <span class="text-muted fw-normal">— issues/@Model.Id/@group.Key/</span>
+                        </div>
+                        <a class="btn btn-sm btn-outline-success py-0"
+                           asp-action="DownloadIssueZip"
+                           asp-route-issueId="@Model.Id"
+                           asp-route-fileType="@group.Key"
+                           title="Download @group.Key folder as ZIP">
+                            ZIP @group.Key
+                        </a>
+                    </div>
+                    <ul class="list-group list-group-flush">
+                        @foreach (var f in group)
+                        {
+                            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                                <div>
+                                    <a asp-action="DownloadAttachment" asp-route-id="@f.Id" class="text-decoration-none">
+                                        <strong>@f.FileName</strong>
+                                    </a>
+                                    <div class="small text-muted">
+                                        @(f.FileSizeBytes < 1024 ? $"{f.FileSizeBytes} B" : $"{f.FileSizeBytes / 1024.0:0.#} KB")
+                                        · by @(f.UploadedBy?.FullName ?? f.UploadedById)
+                                        · @f.UploadedDate.ToLocalTime().ToString("g")
+                                    </div>
+                                </div>
+                                <div class="d-flex gap-1">
+                                    <a class="btn btn-sm btn-outline-primary" asp-action="DownloadAttachment" asp-route-id="@f.Id">Download</a>
+                                    @if (isPM || f.UploadedById == userId)
+                                    {
+                                        <form asp-action="DeleteAttachment" method="post" class="d-inline"
+                                              onsubmit="return confirm('Delete this file?');">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@f.Id" />
+                                            <input type="hidden" name="issueId" value="@Model.Id" />
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                                        </form>
+                                    }
+                                </div>
+                            </li>
+                        }
+                    </ul>
+                </div>
+            }
+        }
+        else
+        {
+            <p class="text-muted small mb-2">No source files uploaded yet. Developer should upload before submitting for review.</p>
+        }
+
+        @if (canUploadFiles)
+        {
+            <hr />
+            <form asp-action="UploadSourceFiles" method="post" enctype="multipart/form-data" class="row g-2 align-items-end">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="issueId" value="@Model.Id" />
+                <div class="col-md-3">
+                    <label class="form-label small mb-0">Folder / type</label>
+                    <select name="fileType" class="form-select form-select-sm">
+                        @foreach (var t in IssueAttachmentTypes.All)
+                        {
+                            <option value="@t">@t</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label small mb-0">Files (max 20 MB each)</label>
+                    <input type="file" name="files" class="form-control form-control-sm" multiple
+                           accept=".cs,.js,.ts,.tsx,.jsx,.py,.java,.kt,.go,.rs,.c,.cpp,.h,.hpp,.html,.css,.scss,.sql,.json,.xml,.yml,.yaml,.md,.txt,.pdf,.doc,.docx,.png,.jpg,.jpeg,.gif,.webp,.svg,.sh,.bat,.ps1,.vue,.php,.rb,.swift" />
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-sm btn-primary w-100">Upload to project folder</button>
+                </div>
+            </form>
+            <p class="form-text small mb-0 mt-1">
+                Files are stored under <code>uploads/projects/@(Model.Project?.FolderPath ?? "{project}")/issues/@Model.Id/{type}/</code>.
+                Reviewers can download them when the issue is in Code Review / Ready for Test / Testing.
+            </p>
+        }
+    </div>
+}
+
+<div class="card border-0 shadow-sm p-3 mb-3">
+    <h6>Comments</h6>
+    @if (Model.Comments != null && Model.Comments.Any())
+    {
+        foreach (var c in Model.Comments.OrderBy(x => x.CreatedDate))
+        {
+            <div class="border-bottom py-2 small">
+                <strong>@(c.User?.FullName ?? c.UserId)</strong>
+                <span class="text-muted">@c.CreatedDate.ToLocalTime().ToString("g")</span>
+                <div>@c.Content</div>
+            </div>
+        }
+    }
+    else
+    {
+        <p class="text-muted small mb-2">No comments yet.</p>
+    }
+    <form asp-action="AddComment" method="post" class="mt-2">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="issueId" value="@Model.Id" />
+        <div class="input-group">
+            <input name="content" class="form-control" placeholder="Add a comment..." required maxlength="1000" />
+            <button type="submit" class="btn btn-primary">Post</button>
+        </div>
+    </form>
+</div>
+
+@if (activity.Any())
+{
+    <div class="card border-0 shadow-sm p-3">
+        <h6>Activity</h6>
+        @await Html.PartialAsync("_ActivityTimeline", activity)
+    </div>
+}

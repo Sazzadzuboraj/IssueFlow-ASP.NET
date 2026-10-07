@@ -1,0 +1,51 @@
+@model Dictionary<string, List<Issue>>
+@{
+    var project = ViewBag.Project as Project;
+    var columns = ViewBag.Columns as string[] ?? Array.Empty<string>();
+    ViewData["Title"] = $"Board — {project?.Name}";
+}
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <div>
+        <h4 class="mb-0">@project?.Name — Board</h4>
+        <span class="small text-muted">Your project role: <strong>@(ViewBag.ProjectRole ?? "Viewer")</strong></span>
+    </div>
+    <div class="d-flex gap-2">
+        <a class="btn btn-outline-secondary btn-sm" asp-controller="Project" asp-action="Details" asp-route-id="@project?.Id">Project</a>
+        <a class="btn btn-outline-primary btn-sm" asp-controller="Project" asp-action="Members" asp-route-id="@project?.Id">Team</a>
+        <a class="btn btn-outline-secondary btn-sm" asp-controller="Issue" asp-action="Index" asp-route-projectId="@project?.Id">List</a>
+    </div>
+</div>
+
+<div class="d-flex gap-2 overflow-auto pb-3" style="min-height:70vh">
+@foreach (var col in columns)
+{
+    var cards = Model.ContainsKey(col) ? Model[col] : new List<Issue>();
+    <div class="flex-shrink-0" style="width:240px">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-light py-2 d-flex justify-content-between">
+                <strong class="small">@col</strong>
+                <span class="badge bg-secondary">@cards.Count</span>
+            </div>
+            <div class="card-body p-2" style="max-height:65vh;overflow-y:auto">
+                @foreach (var i in cards)
+                {
+                    <div class="card mb-2 shadow-sm border">
+                        <div class="card-body p-2">
+                            <div class="small text-muted">@i.Type · @i.Priority</div>
+                            <a asp-controller="Issue" asp-action="Details" asp-route-id="@i.Id" class="fw-semibold text-decoration-none small">@i.Title</a>
+                            @if (i.Assignments != null && i.Assignments.Any())
+                            {
+                                <div class="small text-muted mt-1">@string.Join(", ", i.Assignments.Select(a => a.User?.FullName ?? "?").Take(2))</div>
+                            }
+                        </div>
+                    </div>
+                }
+                @if (!cards.Any())
+                {
+                    <div class="text-muted small text-center py-3">Empty</div>
+                }
+            </div>
+        </div>
+    </div>
+}
+</div>

@@ -1,0 +1,38 @@
+@model IEnumerable<Issue>
+@using IssueFlow.Constants
+@{ ViewData["Title"] = "Features for review"; }
+<div class="d-flex justify-content-between mb-3">
+    <h5>Features ready for QA review</h5>
+    <div>
+        <a class="btn btn-outline-secondary btn-sm" asp-action="Available" asp-route-kind="Work">Work queue</a>
+        <a class="btn btn-outline-primary btn-sm" asp-action="MyRequests">My requests</a>
+    </div>
+</div>
+<div class="card border-0 shadow-sm">
+    <table class="table table-hover mb-0">
+        <thead class="table-light"><tr><th>Feature / Issue</th><th>Project</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+        @foreach (var i in Model)
+        {
+            <tr>
+                <td><a asp-controller="Issue" asp-action="Details" asp-route-id="@i.Id">@i.Title</a></td>
+                <td>@i.Project?.Name</td>
+                <td><span class="badge bg-secondary">@i.Status</span></td>
+                <td>
+                    @if (User.IsInRole("QATester") && (i.Status == IssueStatuses.ReadyForTest || i.Status == IssueStatuses.CodeReview || i.Status == IssueStatuses.Testing))
+                    {
+                        <form asp-action="RequestWork" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="targetType" value="Issue" />
+                            <input type="hidden" name="targetId" value="@i.Id" />
+                            <input type="hidden" name="requestKind" value="Review" />
+                            <button class="btn btn-sm btn-primary">Request review</button>
+                        </form>
+                    }
+                </td>
+            </tr>
+        }
+        @if (!Model.Any()) { <tr><td colspan="4" class="text-center text-muted py-3">No features waiting for review</td></tr> }
+        </tbody>
+    </table>
+</div>

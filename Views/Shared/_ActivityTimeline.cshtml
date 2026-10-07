@@ -1,0 +1,37 @@
+@model List<IssueFlow.Models.ActivityLog>
+@{
+    var logs = Model ?? new List<IssueFlow.Models.ActivityLog>();
+}
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-white fw-semibold">
+        <i class="bi bi-clock-history me-1"></i> Activity
+    </div>
+    <div class="card-body p-0">
+        @if (logs.Count == 0)
+        {
+            <p class="text-muted small p-3 mb-0">No activity recorded yet.</p>
+        }
+        else
+        {
+            <ul class="list-group list-group-flush">
+                @foreach (var log in logs)
+                {
+                    <li class="list-group-item px-3 py-2">
+                        <div class="d-flex justify-content-between">
+                            <span class="fw-medium small">@log.Action</span>
+                            <span class="text-muted small">@log.Timestamp.ToLocalTime().ToString("dd MMM HH:mm")</span>
+                        </div>
+                        @if (!string.IsNullOrWhiteSpace(log.Details))
+                        {
+                            <div class="text-muted small">@log.Details</div>
+                        }
+                        @if (log.User != null)
+                        {
+                            <div class="text-muted small"><i class="bi bi-person"></i> @(log.User.FullName ?? log.User.Email)</div>
+                        }
+                    </li>
+                }
+            </ul>
+        }
+    </div>
+</div>

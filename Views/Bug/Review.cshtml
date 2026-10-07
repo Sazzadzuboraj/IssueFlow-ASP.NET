@@ -1,0 +1,37 @@
+@model IssueFlow.Models.ViewModels.ReviewFixViewModel
+@{
+    ViewData["Title"] = "Review Fix";
+}
+
+<h2 class="mb-3">Review Fix</h2>
+<p class="text-muted">Bug: <strong>@Model.BugTitle</strong></p>
+
+<div class="card border-0 shadow-sm" style="max-width:560px">
+    <div class="card-body">
+        <form asp-action="Review" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="BugId" />
+            <input type="hidden" asp-for="BugTitle" />
+
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Decision</label>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" asp-for="Approve" value="true" id="approveYes" checked />
+                    <label class="form-check-label" for="approveYes">Approve — mark as Verified</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" asp-for="Approve" value="false" id="approveNo" />
+                    <label class="form-check-label" for="approveNo">Reject — reopen for developer</label>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="ReviewNotes" class="form-label">Notes</label>
+                <textarea asp-for="ReviewNotes" class="form-control" rows="3" placeholder="Optional feedback for the developer..."></textarea>
+            </div>
+
+            <button type="submit" class="btn btn-success">Submit Review</button>
+            <a asp-action="Details" asp-route-id="@Model.BugId" class="btn btn-outline-secondary">Cancel</a>
+        </form>
+    </div>
+</div>
