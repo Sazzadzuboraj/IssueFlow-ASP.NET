@@ -59,7 +59,7 @@ Legacy values are mapped via `IssueStatuses.Normalize()`.
 
 | Role            | Email               | Password  |
 |-----------------|---------------------|-----------|
-| Admin           | admin@issueflow.com | ------- |
+| Admin           | admin@issueflow.com | Admin*123 |
 | Project Manager | pm@issueflow.com    | ------- |
 | Developer       | dev@issueflow.com   | ------- ` |
 | QA Tester       | qa@issueflow.com    | --------  |
